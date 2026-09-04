@@ -1,4 +1,9 @@
-![alt text](figures/logo_Enershare.png)
+<p align="center">
+  <img src="figures/logo_Enershare.png" alt="Enershare logo" height="80" />
+  &nbsp;&nbsp;&nbsp;
+  <img src="figures/logo_ENPOWER.png" alt="ENPOWER logo" height="80" />
+</p>
+
 ```
   ____   _____  ____   ____   _       _               
  |  _ \ | ____|/ ___| / ___| (_) ____(_) _ __    __ _ 
@@ -34,10 +39,32 @@ installing additional RES or storage capacity behind a given meter, that capacit
 the beginning of the optimization horizon (defined by the user).
 
 ## Main optimization functions overview
-Under ```rec_sizing_tools.optimization_functions``` the user can find:
+Under ```rec_sizing.optimization_functions``` the user can find:
+
+```run_clustering_kmedoids``` 
+- apply K-Medoids clustering to reduce time series data into a set of representative days, to be used to reduce
+the computational burden of the MILP
 
 ```run_pre_collective_pool_milp``` 
 - run a purely collective pre-delivery MILP, considering a *pool* LEM structure
+
+## New behind-the-meter flexibility resources
+
+Besides BESS scheduling and sizing, the MILP now supports optional behind-the-meter flexible assets, defined per meter
+under the corresponding key. When present, their schedules are optimized jointly with the rest of the REC and their
+results are returned alongside the standard MILP outputs.
+
+- **EVs** (`btm_evs`) — one or more electric vehicles per meter, each with its own battery capacity, (dis)charging
+  efficiencies and power limits, trip consumption, minimum energy to guarantee and plugged-in status.
+- **EWH** (`ewh`) — electric water heater flexibility, either from an actual load diagram or an estimated hot-water
+  usage calendar, together with the EWH's physical specs (capacity, power, temperature limits) and tariff scheme.
+  Optimized outputs include the internal water temperature, ON/OFF calendar, hot-water usage and load diagram.
+- **Heat pump** (`hp`) — models the HP's rated power, water tank and building thermal parameters to optimize its
+  power consumption (circulation, water heating and tank heating), the indoor and outlet water temperatures, and any
+  comfort penalty for exceeding the defined temperature limits.
+- **HVAC** (`hvac`) — one or more inverter- or on/off-type HVAC units per meter, parameterized by the building's
+  insulation and thermal resistance/capacity, to optimize power consumption and room temperature against user-defined
+  comfort bounds.
 
 ## Install guide: use it as a library
 

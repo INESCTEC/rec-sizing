@@ -170,6 +170,82 @@ def run_pre_collective_pool_milp(
 				'eff_bd': a fixed value, between 0 and 1, that expresses the discharging efficiency of the BESS
 				'soc_max': a percentage, applicable to "e_bn", identifying a maximum limit to the energy content
 				'deg_cost': a float representing a penalty for cyclic degradation of the BESS, in €/kWh
+				'btm_evs': structure where several Btm EVs units can be defined
+					#EV_id: {
+						'trip_ev': EV energy consumption, in kWh
+						'min_energy_storage_ev': Minimum stored energy to be guaranteed for vehicle ev at CPE n, in kWh
+						'battery_capacity_ev': The battery energy capacity of vehicle ev at CPE n, in kWh
+						'eff_bc_ev': Charging efficiency of vehicle ev at CPE n, between 0 and 1
+						'eff_bd_ev': Discharging efficiency of vehicle ev at CPE n, between 0 and 1
+						'init_e_ev': the initial energy content of the EV, in kWh
+						'pmax_c_ev': Maximum power charge of vehicle ev at CPE n, in kW
+						'pmax_d_ev': Maximum power discharge of vehicle ev at CPE n, in kW
+						'bin_ev': Whether a vehicle ev at CPE n is plugged-in or not (if plugged-in = 1 else = 0)
+							}
+				'ewh': structure where several EWH units can be defined
+						'params_input': structure for EWH static parameters
+							'load_diagram_exists': boolean variable that states if the provided dataset is the actual
+													diagram (1), or the estimated hot water usage calendar (0)
+							'ewh_specs': structure for EWH specifications
+								'ewh_capacity': EWH capacity (l)
+								'ewh_power': EWH heating power (W)
+								'ewh_max_temp': EWH maximum allowed water temperature (°C)
+								'ewh_std_temp': EWH standard non-optimized functioning water temperature (°C)
+								'user_comf_temp': Hot-Water Usage Comfort Temperature (minimum user-defined temperature - °C)
+								'tariff': Tariff selection between simple (1) or dual (2)
+								'price_simple': Simple pricing value per kWh (Euro)
+								'price_dual_day': Dual day pricing value per kWh (Euro)
+								'price_dual_night': Dual night pricing value per kWh (Euro)
+								'tariff_simple':  Fixed daily simple tariff pricing (Euro)
+								'tariff_dual': Fixed daily dual tariff pricing (Euro)
+						'dataset': contains the actual EWH dataset. The user can provide the real load time-series, or
+									the estimated hot-water usage calendar. The load time-series should respect a 1-min
+									measurement resolution, with 'timestamp' and 'load' pairwise keys. The estimated
+									usage should have the usages starting timestamp in the 'start' key, and the duration
+									in the 'duration' key.
+				'hvac': structure where several btm HVAC units can be defined
+					{'HVAC_ID': {
+                    'type': HVAC type (inverter or state),
+                    'mu': Building insulation factor,
+                    'psi': HVAC temperature efficiency factor,
+                    'temp_min': Min room temperature constraint, ºC,
+                    'temp_max': Max room temperature constraint, ºC,
+                    'init_temp': Initial room temperature, ºC,
+                    'hvac_capacity': Maximum HVAC power, kW,
+                    't_out': Outside temperature, ºC,
+                    'thermal_resist': thermal resistence, ºC/kW,
+                    'thermal_cap': thermal capacity, kWh/ºC
+                }}
+                'hp': structure where several btm Heat Pump units can be defined
+                {'type': 'inverter',  # type
+                    'power_rated': 4.0,  # Rated power of HP [kW]
+                    'capacity_tank': 500,  # Water tank capacity [kg]
+                    'c_p': 4.18,  # Specific heat capacity of water [kJ/kg°C]
+
+                    # Initial and desired temperatures
+                    'temp_inlet': 15.0,  # Inlet water temp [°C]
+                    'temp_desired': 55.0,  # Desired water temp [°C]
+                    'temp_out_init': 50.0,  # Initial outlet temp [°C]
+                    'temp_indoor_init': 18,  # Initial indoor temp [°C]
+                    'temp_indoor_final': 22,  # Final indoor temp [°C]
+
+                    # Comfort temperature bounds
+                    'temp_indoor_min': 20.0,  # Min indoor temp [°C]
+                    'temp_indoor_max': 24.0,  # Max indoor temp [°C]
+                    'temp_out_min': 50.0,  # Min outlet temp [°C]
+                    'temp_out_max': 70.0,  # Max outlet temp [°C]
+
+                    # Building parameters
+                    'u_value': 0.3,  # Building heat loss coefficient [kW/°C]
+                    'thermal_resistance': 3,  # Building thermal resistance coefficient
+                    'h_rad': 0.05,  # Convective heat transfer coeff of radiator [kW/m2°C]
+                    'area_rad': 5.0,  # Radiator surface area [m²]
+
+                    # External time-varying series
+                    'mass_hw_demand': [0.0, 1 , 1],
+                    'mass_radiator': [50] * 3,
+                    't_out': [14, 14, 14],
+                }
 			}
 		}
 	}
@@ -215,6 +291,22 @@ def run_pre_collective_pool_milp(
 		'c_ind2pool': dict of floats with the individual costs with energy for the optimization horizon, in €;
 			positive values are costs, negative values are profits
 		'dual_prices: float array with the market equilibrium shadow prices to be used as LEM prices, in €/kWh
+		'ewh_temp' dict of floats fot EWH internal water temperature, per time step, per meter
+		'ewh_delta_in': dict of floats for EWH Functioning (ON/OFF) Calendar (relative to the used resolution),
+			per time step, per meter
+		'ewh_delta_use' dict of bool with EWH hot water usage, per time step, per meter
+		'ewh_optimized_load': dict of floats for EWH optimized load diagram, per time step, per meter
+		'ewh_original_load': dict of floats for EWH original load diagram, per time step, per meter
+		'hvac_power': dict of floats with the HVAC power consumption, per time step, per meter
+		'hvac_temp': dict of float with the HVAC temperature, per time step, per meter
+		'hvac_cost_comfort': dict of floats with the cost for not keeping the max and min temperatures, per time step, per meter
+		'hp_power': Power consumed by the HP, per time step, per meter
+		'hp_temp_indoor': Indoor temperature controler by the HP, per time step, per meter
+		'hp_power_circulation': HP circulation power consumption, per time step, per meter
+		'hp_power_heating': Power consumption of HP for increasing the water temperature, per time step, per meter
+		'hp_power_tank': Power consumption of HP for increasing the tank temperature, per time step, per meter
+		'hp_outlet_temp': Outlet water temperature controlled by the HP, per time step, per meter
+		'hp_cost_comfort': Penalty for exceeding temperature limits, per time step, per meter
 	}
 	"""
 	logger.info('Running a pre-delivery standalone/second stage collective (pool) MILP...')

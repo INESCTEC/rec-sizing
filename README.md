@@ -16,7 +16,7 @@
 # Documentation
 
 The *REC Sizing* use case aims to provide an **optimal investment plan** for Renewable Energy Communities (REC) and 
-Citizen Energy Communities (CEC) under the *Enershare* project. 
+Citizen Energy Communities (CEC) under the *Enershare* and *ENPOWER* projects. 
 
 To that end, a library was implemented, named ***rec_sizing*** (**R**enewable **E**nergy **C**ommunities **Sizing**), 
 that provides the user with several options for running a MILP optimization aimed at **minimizing the collective 
@@ -48,7 +48,7 @@ the computational burden of the MILP
 ```run_pre_collective_pool_milp``` 
 - run a purely collective pre-delivery MILP, considering a *pool* LEM structure
 
-## New behind-the-meter flexibility resources
+## Behind-the-meter flexibility resources
 
 Besides BESS scheduling and sizing, the MILP now supports optional behind-the-meter flexible assets, defined per meter
 under the corresponding key. When present, their schedules are optimized jointly with the rest of the REC and their
